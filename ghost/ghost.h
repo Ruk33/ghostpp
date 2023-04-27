@@ -21,7 +21,6 @@
 #ifndef GHOST_H
 #define GHOST_H
 
-#include <sys/types.h> // pid_t
 #include "includes.h"
 
 //
@@ -78,8 +77,6 @@ public:
 	CMap *m_AutoHostMap;					// the map to use when autohosting
 	CSaveGame *m_SaveGame;					// the save game to use
 	vector<PIDPlayer> m_EnforcePlayers;		// vector of pids to force players to use in the next game (used with saved games)
-	map<string, uint16_t> m_PortUsedByUsers;	// ports used by user name. this map will get populated when using the pvpgn integration.
-	map<string, pid_t> m_PIDByUsers; // process id used by users using bot slaves.
 	bool m_IsSlave;							// is this instance a bot slave?
 	uint32_t m_MaxSlaves;					// max number of slaves allowed to be executing at once.
 	uint16_t m_SlaveStartingPort;			// starting port to be used by slave processes.
@@ -159,6 +156,9 @@ public:
 
 	CGHost( CConfig *CFG );
 	~CGHost( );
+
+	bool IsPortBeingUsed( uint16_t Port );
+	uint16_t FindFreePort( );
 
 	// processing functions
 

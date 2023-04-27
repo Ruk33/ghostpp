@@ -199,7 +199,6 @@ public:
 	void HoldFriends( CBaseGame *game );
 	void HoldClan( CBaseGame *game );
 	bool TryLoadMap( string Pattern, string User, bool Whisper );
-	uint16_t FindFreePort( );
 };
 
 #endif

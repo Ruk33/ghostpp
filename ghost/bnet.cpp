@@ -2126,43 +2126,6 @@ void CBNET :: BotCommand( string Message, string User, bool Whisper, bool ForceR
 	}
 }
 
-bool IsPortBeingUsed( uint16_t Port )
-{
-	struct sockaddr_in client;
-
-	client.sin_family = AF_INET;
-	client.sin_port = htons( Port );
-	client.sin_addr.s_addr = inet_addr( "127.0.0.1" );
-
-	int sock = (int) socket( AF_INET, SOCK_STREAM, 0 );  
-	int result = connect( sock, (struct sockaddr *) &client, sizeof(client) );
-	close( sock );
-
-	// port is closed or not listening.
-	if( result < 0 )
-		return false;
-
-	// port is listening, ie, being used.
-	return true;
-}
-
-uint16_t CBNET :: FindFreePort( )
-{
-	uint16_t FreePort = m_GHost->m_SlaveStartingPort;
-	if( FreePort == 0 )
-		return 0;
-
-	uint32_t TriesBeforeGivingUp = m_GHost->m_MaxSlaves;
-	for( uint32_t i = 0; i < TriesBeforeGivingUp; i++ )
-	{
-		if( !IsPortBeingUsed( FreePort ) )
-			return FreePort;
-		FreePort++;
-	}
-
-	return 0;
-}
-
 void CBNET :: PVPGNCommand( string Message ) {
 	// example message = /pvpgn chost testruke DotA v6.80c.w3x test
 
@@ -2188,53 +2151,18 @@ void CBNET :: PVPGNCommand( string Message ) {
 		string Owner = Payload.substr( 0, MapStart - 1 );
 		if( !m_GHost->m_IsSlave )
 		{
-			// find if the user already has another game.
-			if ( m_GHost->m_PIDByUsers.count( Owner ) > 0 )
-			{
-				// user has another game so let's kill it first before
-				// creating a new one.
-				auto tmp = m_GHost->m_PIDByUsers.find( Owner );
-				pid_t pid = tmp->second;
-				// kill the bot slave instance.
-				kill(pid, SIGTERM);
-				// remove the user from the pid map, it will be added later
-				// again.
-				m_GHost->m_PIDByUsers.erase( Owner );
-				m_GHost->m_PortUsedByUsers.erase( Owner );
-				QueueChatCommand( "Ending your previous started game. Please wait...", Owner, true );
-			}
 			QueueChatCommand( "Trying to create your game. Please wait...", Owner, true );
 
-			uint16_t FreePort = FindFreePort();
-			if( FreePort == 0 )
-			{
-				QueueChatCommand( "The server is too busy to create a game right now. Please try again in a few minutes.", Owner, true );
-				return;
-			}
-
-			string SlaveConfigPath = "./slave_" + to_string(FreePort) + ".cfg";
-			if( !UTIL_FileExists(SlaveConfigPath) )
-			{
-				QueueChatCommand( "Server error. The configuration for the bot using port " + to_string(FreePort) + " is missing. Please contact the administration.", Owner, true );
-				return;
-			}
-
-			// string MessageInQuotes = "\"" + Message + "\"";
-
-			const char* path = "./ghost++";
-			char* argv[] = {"./ghost++", (char *)SlaveConfigPath.c_str(), (char *)Message.c_str(), 0};
-
+			char* argv[] = {"./ghost++", "./ghost.cfg", (char *)Message.c_str(), 0};
 			posix_spawn_file_actions_t file_actions;
 			posix_spawn_file_actions_init(&file_actions);
 			pid_t pid;
-			if( posix_spawn(&pid, path, &file_actions, 0, argv, 0) != 0 )
+			if( posix_spawn(&pid, "./ghost++", &file_actions, 0, argv, 0) != 0 )
 			{
 				QueueChatCommand( "There was an error while creating the game. Please try again in a few minutes.", Owner, true );
 				return;
 			}
 			posix_spawn_file_actions_destroy(&file_actions);
-			m_GHost->m_PIDByUsers.insert( {Owner, pid} );
-			m_GHost->m_PortUsedByUsers.insert( {Owner, FreePort} );
 			return;
 		}
 
