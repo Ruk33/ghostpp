@@ -328,7 +328,6 @@ int main( int argc, char **argv )
 	if( gGHost->m_IsSlave )
 	{
 		gGHost->m_SlaveCommand = argv[2];
-		gGHost->m_HostPort = gGHost->FindFreePort();
 		CONSOLE_Print( "[GHOST] slave detected, command to be executed [" + gGHost->m_SlaveCommand + "]" );
 	}
 
@@ -372,43 +371,6 @@ int main( int argc, char **argv )
 //
 // CGHost
 //
-
-bool CGHost :: IsPortBeingUsed( uint16_t Port )
-{
-	struct sockaddr_in client = {0};
-
-	client.sin_family = AF_INET;
-	client.sin_port = htons( Port );
-	client.sin_addr.s_addr = INADDR_ANY;
-
-	int sock = (int) socket( AF_INET, SOCK_STREAM, 0 );  
-	int result = connect( sock, (struct sockaddr *) &client, sizeof(client) );
-	close( sock );
-
-	// port is closed or not listening.
-	if( result < 0 )
-		return false;
-
-	// port is listening, ie, being used.
-	return true;
-}
-
-uint16_t CGHost :: FindFreePort( )
-{
-	uint16_t FreePort = m_SlaveStartingPort;
-	if( FreePort == 0 )
-		return 0;
-
-	uint32_t TriesBeforeGivingUp = m_MaxSlaves;
-	for( uint32_t i = 0; i < TriesBeforeGivingUp; i++ )
-	{
-		if( !IsPortBeingUsed( FreePort ) )
-			return FreePort;
-		FreePort++;
-	}
-
-	return 0;
-}
 
 CGHost :: CGHost( CConfig *CFG )
 {
