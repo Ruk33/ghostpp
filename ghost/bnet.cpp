@@ -2189,6 +2189,7 @@ void CBNET :: PVPGNCommand( string Message ) {
 		if( !m_GHost->m_IsSlave )
 		{
 			// find if the user already has another game.
+			#if 0
 			if ( m_GHost->m_PIDByUsers.count( Owner ) > 0 )
 			{
 				// user has another game so let's kill it first before
@@ -2203,6 +2204,7 @@ void CBNET :: PVPGNCommand( string Message ) {
 				m_GHost->m_PortUsedByUsers.erase( Owner );
 				QueueChatCommand( "Ending your previous started game. Please wait...", Owner, true );
 			}
+			#endif
 			QueueChatCommand( "Trying to create your game. Please wait...", Owner, true );
 
 			uint16_t FreePort = FindFreePort();
@@ -2233,8 +2235,10 @@ void CBNET :: PVPGNCommand( string Message ) {
 				return;
 			}
 			posix_spawn_file_actions_destroy(&file_actions);
+			#if 0
 			m_GHost->m_PIDByUsers.insert( {Owner, pid} );
 			m_GHost->m_PortUsedByUsers.insert( {Owner, FreePort} );
+			#endif
 			return;
 		}
 
