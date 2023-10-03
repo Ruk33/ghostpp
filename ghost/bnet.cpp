@@ -2181,7 +2181,8 @@ void CBNET :: PVPGNCommand( string Message ) {
 	CONSOLE_Print( "[BNET: " + m_ServerAlias + "] PVPGN command payload is [" + Payload + "]" );
 
 	// /pvpgn chost <owner> <map path> <game name>
-	if ( Command == "chost" ) {
+	// disable chost command.
+	if ( false && Command == "chost" ) {
 		string :: size_type MapStart = Payload.find( " " ) + 1;
 		string :: size_type MapExtensionStart = Payload.find( ".w3", MapStart );
 		string :: size_type GameNameStart = Payload.find( " ", MapExtensionStart ) + 1;

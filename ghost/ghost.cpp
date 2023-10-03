@@ -54,6 +54,10 @@ namespace MPQ{
 #include <signal.h>
 #include <stdlib.h>
 
+#include <iostream>
+#include <filesystem>
+#include <string>
+
 #ifdef WIN32
  #include <ws2tcpip.h>		// for WSAIoctl
 #endif
@@ -324,7 +328,8 @@ int main( int argc, char **argv )
 	// initialize ghost
 
 	gGHost = new CGHost( &CFG );
-	gGHost->m_IsSlave = argc == 3;
+	// Disable slave feature.
+	gGHost->m_IsSlave = false;
 	if( gGHost->m_IsSlave )
 	{
 		gGHost->m_SlaveCommand = argv[2];
@@ -1123,6 +1128,59 @@ bool CGHost :: Update( long usecBlock )
 		}
 
 		m_LastAutoHostTime = GetTime( );
+	}
+
+	if (!m_CurrentGame) {
+		// Check if we need to create a new game.
+		std::string directory = ".";
+		std::string key = "pending";
+		std::string replacement = "processed";
+		for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(directory)) {
+			if (entry.is_regular_file()) {
+				std::string filename = entry.path().filename().string();
+				
+				// Check if the filename contains the key
+				size_t pos = filename.find(key);
+				if (pos != std::string::npos) {
+					std::cout << "Found new request " << filename << std::endl;
+
+					// Read request.
+					std::ifstream file(entry.path());
+					if (!file.is_open())
+						break;
+					std::string map;
+					std::string owner;
+					std::string name;
+					std::getline(file, map);
+					std::getline(file, owner);
+					std::getline(file, name);
+					file.close();
+					
+					// Replace "pending" with "processed" in the filename
+					filename.replace(pos, key.length(), replacement);
+					
+					// Construct the new path with the modified filename
+					std::filesystem::path newFilePath = entry.path().parent_path() / filename;
+					
+					// Rename the file
+					std::filesystem::rename(entry.path(), newFilePath);
+					
+					std::cout << "Request marked as processed: " << filename << std::endl;
+
+					// Try to load and create the game.
+					std::cout << "Request is " << map << " " << owner << " " << name << std::endl;
+
+					for (vector<CBNET *> :: iterator i = m_BNETs.begin( ); i != m_BNETs.end( ); ++i) {
+						if ((*i)->TryLoadMap(map, owner, false)) {
+							CreateGame(m_Map, GAME_PUBLIC, false, map, owner, owner, (*i)->GetServer(), false);
+							std::cout << "Game created from request." << std::endl;
+						}
+					}
+					
+					break; // Stop searching after the first match
+				}
+			}
+		}
 	}
 
 	return m_Exiting || AdminExit || BNETExit;
